@@ -50,7 +50,7 @@ O programa permite adicionar e listar tarefas diretamente pelo terminal, com um 
 
 ## Tecnologias
 
-- **C ** — linguagem principal do projeto
+- **C** — linguagem principal do projeto
 - **stdio.h** — entrada e saída padrão
 - **string.h** — manipulação de strings (`strcpy`)
 
