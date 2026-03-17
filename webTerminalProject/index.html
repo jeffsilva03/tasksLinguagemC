@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tasksLinguagemC — Gerenciador de Tarefas em C</title>
+  <meta name="description" content="Projeto em linguagem C que implementa um gerenciador de tarefas no terminal, explorando fundamentos da programação." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #39ff14;
+      --green-dim: #22cc00;
+      --green-faint: rgba(57, 255, 20, 0.07);
+      --bg: #0a0a0a;
+      --bg2: #111;
+      --bg3: #161616;
+      --border: rgba(57, 255, 20, 0.18);
+      --border-dim: rgba(57, 255, 20, 0.08);
+      --text: #d4d4d4;
+      --text-dim: #777;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.4;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px);
+      pointer-events: none;
+      z-index: 998;
+    }
+
+    /* NAV */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 48px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 10, 10, 0.95);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .nav-logo {
+      font-size: 13px;
+      color: var(--green);
+      letter-spacing: .1em;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .nav-logo span { color: var(--text-dim); }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+    }
+
+    .nav-tab {
+      font-size: 11px;
+      padding: 7px 20px;
+      color: var(--text-dim);
+      cursor: pointer;
+      letter-spacing: .08em;
+      border: none;
+      background: transparent;
+      font-family: var(--mono);
+      transition: all .15s;
+    }
+
+    .nav-tab:hover { color: var(--green); background: var(--green-faint); }
+    .nav-tab.active { color: #000; background: var(--green); font-weight: 600; }
+
+    .nav-cta {
+      font-size: 11px;
+      color: var(--green);
+      border: 1px solid var(--border);
+      padding: 7px 18px;
+      text-decoration: none;
+      letter-spacing: .08em;
+      transition: background .15s, color .15s;
+    }
+
+    .nav-cta:hover { background: var(--green); color: #000; }
+
+    /* PAGES */
+    .page { display: none; animation: fadeIn .2s ease; }
+    .page.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* HERO */
+    .hero {
+      padding: 80px 48px 64px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--green);
+      border: 1px solid var(--border);
+      padding: 5px 14px;
+      background: var(--green-faint);
+      margin-bottom: 36px;
+      letter-spacing: .1em;
+    }
+
+    .badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: blink 1.2s step-end infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    h1 {
+      font-size: clamp(40px, 7vw, 72px);
+      font-weight: 600;
+      line-height: 1;
+      color: #fff;
+      letter-spacing: -.02em;
+      margin-bottom: 10px;
+    }
+
+    h1 .accent { color: var(--green); }
+
+    .hero-sub {
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: .06em;
+      margin-bottom: 28px;
+    }
+
+    .hero-desc {
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.75;
+      max-width: 540px;
+      margin-bottom: 44px;
+      font-family: var(--sans);
+    }
+
+    .actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+
+    .btn-p {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--green);
+      color: #000;
+      padding: 13px 26px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--mono);
+      letter-spacing: .08em;
+      border: none;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+      text-decoration: none;
+    }
+
+    .btn-p:hover { opacity: .88; transform: translateY(-1px); }
+
+    .btn-s {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--text);
+      padding: 12px 26px;
+      font-size: 12px;
+      font-family: var(--mono);
+      letter-spacing: .08em;
+      border: 1px solid rgba(255, 255, 255, .14);
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+      text-decoration: none;
+    }
+
+    .btn-s:hover { border-color: var(--green); color: var(--green); }
+
+    /* CONCEPTS */
+    .concepts {
+      padding: 0 48px 72px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .sec-label {
+      font-size: 11px;
+      color: var(--green);
+      letter-spacing: .14em;
+      margin-bottom: 10px;
+    }
+
+    .sec-title {
+      font-size: 24px;
+      color: #fff;
+      font-weight: 600;
+      margin-bottom: 40px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+
+    .card {
+      background: var(--bg);
+      padding: 24px 20px;
+      transition: background .15s;
+    }
+
+    .card:hover { background: var(--green-faint); }
+
+    .card-num { font-size: 11px; color: var(--green); letter-spacing: .1em; margin-bottom: 10px; }
+    .card-name { font-size: 13px; color: #fff; font-weight: 500; margin-bottom: 6px; }
+    .card-desc { font-size: 12px; color: var(--text-dim); line-height: 1.6; font-family: var(--sans); }
+
+    /* FEATURES TABLE */
+    .feat-table-wrap {
+      overflow-x: auto;
+      margin-bottom: 48px;
+    }
+
+    table.feat {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    table.feat th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 10px;
+      color: var(--green);
+      letter-spacing: .1em;
+      border-bottom: 1px solid var(--border);
+      font-weight: 500;
+    }
+
+    table.feat td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border-dim);
+      vertical-align: middle;
+    }
+
+    table.feat tr:last-child td { border-bottom: none; }
+    table.feat tr:hover td { background: var(--green-faint); }
+
+    .feat-name { color: #fff; font-weight: 500; }
+    .feat-desc { color: var(--text-dim); font-family: var(--sans); font-size: 12px; }
+
+    .tag {
+      display: inline-block;
+      font-size: 10px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      color: var(--green);
+      letter-spacing: .06em;
+      background: var(--green-faint);
+      white-space: nowrap;
+    }
+
+    /* HOW TO USE */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 32px;
+      margin-bottom: 48px;
+    }
+
+    .step-number { font-size: 44px; font-weight: 600; color: var(--green); opacity: .14; line-height: 1; margin-bottom: 14px; }
+    .step-title { font-size: 13px; color: #fff; font-weight: 500; margin-bottom: 8px; letter-spacing: .04em; }
+    .step-desc { font-size: 12px; color: var(--text-dim); line-height: 1.65; font-family: var(--sans); }
+
+    .step-code {
+      margin-top: 12px;
+      font-size: 11px;
+      color: var(--green);
+      background: var(--green-faint);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      display: inline-block;
+      line-height: 1.7;
+    }
+
+    .divider { border: none; border-top: 1px solid var(--border-dim); margin: 0 48px; }
+
+    /* TERMINAL PAGE */
+    .term-wrap {
+      padding: 36px 48px 56px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .term-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .term-info { font-size: 12px; color: var(--text-dim); letter-spacing: .06em; }
+    .term-info span { color: var(--green); }
+
+    .ctrl-btn {
+      font-size: 11px;
+      padding: 6px 14px;
+      font-family: var(--mono);
+      letter-spacing: .06em;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      transition: all .15s;
+    }
+
+    .ctrl-btn:hover { border-color: #ff5f57; color: #ff5f57; }
+
+    .terminal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .tbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg3);
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dr { background: #ff5f57; }
+    .dy { background: #ffbd2e; }
+    .dg { background: #28ca41; }
+
+    .ttitle { font-size: 11px; color: var(--text-dim); margin-left: 8px; letter-spacing: .08em; }
+
+    .tbody {
+      padding: 20px 24px;
+      font-size: 13px;
+      line-height: 1.9;
+      min-height: 340px;
+      max-height: 440px;
+      overflow-y: auto;
+    }
+
+    .tbody::-webkit-scrollbar { width: 4px; }
+    .tbody::-webkit-scrollbar-track { background: transparent; }
+    .tbody::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .l-comment { color: #444; }
+    .l-prompt { color: var(--green); }
+    .l-cmd { color: #fff; }
+    .l-out { color: var(--text-dim); }
+    .l-green { color: var(--green); }
+    .l-err { color: #ff5f57; }
+    .l-num { color: #f0a500; }
+    .l-str { color: #ce9178; }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      background: var(--bg3);
+    }
+
+    .input-prompt {
+      font-size: 13px;
+      color: var(--green);
+      padding: 0 0 0 20px;
+      white-space: nowrap;
+      line-height: 44px;
+      flex-shrink: 0;
+      font-family: var(--mono);
+    }
+
+    #user-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 0 16px;
+      height: 44px;
+      caret-color: var(--green);
+    }
+
+    .send-btn {
+      height: 44px;
+      padding: 0 20px;
+      background: transparent;
+      border: none;
+      border-left: 1px solid var(--border);
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 11px;
+      cursor: pointer;
+      letter-spacing: .06em;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+
+    .send-btn:hover { background: var(--green-faint); }
+
+    .help-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .help-card {
+      background: var(--bg2);
+      border: 1px solid var(--border-dim);
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .help-card:hover { border-color: var(--border); background: var(--green-faint); }
+    .help-key { font-size: 12px; color: var(--green); margin-bottom: 4px; }
+    .help-val { font-size: 11px; color: var(--text-dim); font-family: var(--sans); }
+
+    /* FOOTER */
+    footer {
+      padding: 36px 48px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .f-left { font-size: 11px; color: var(--text-dim); }
+
+    .f-right { display: flex; gap: 24px; }
+
+    .f-right a {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-decoration: none;
+      letter-spacing: .06em;
+      transition: color .15s;
+    }
+
+    .f-right a:hover { color: var(--green); }
+
+    /* RESPONSIVE */
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      .nav-cta { display: none; }
+      .hero { padding: 56px 20px 40px; }
+      .concepts { padding: 0 20px 56px; }
+      .divider { margin: 0 20px; }
+      .term-wrap { padding: 24px 16px 48px; }
+      footer { padding: 28px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">tasks<span>/</span>LinguagemC</a>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('landing', this)">overview</button>
+    <button class="nav-tab" onclick="showPage('terminal', this)">terminal</button>
+  </div>
+  <a class="nav-cta" href="https://github.com/jeffsilva03/tasksLinguagemC" target="_blank" rel="noopener">$ git clone</a>
+</nav>
+
+<!-- LANDING PAGE  -->
+<div id="page-landing" class="page active">
+
+  <div class="hero">
+    <div class="badge">C99 · terminal · educacional</div>
+    <h1>gerenciador<br>de tarefas<br><span class="accent">em C.</span></h1>
+    <div class="hero-sub">// jeffsilva03/tasksLinguagemC</div>
+    <p class="hero-desc">
+      Programa de linha de comando que implementa um gerenciador de tarefas explorando os fundamentos da linguagem C — variáveis, estruturas condicionais, switch case e loops — do zero, sem dependências externas.
+    </p>
+    <div class="actions">
+      <button class="btn-p" onclick="showPage('terminal', document.querySelectorAll('.nav-tab')[1])">
+        rodar no terminal →
+      </button>
+      <a class="btn-s" href="https://github.com/jeffsilva03/tasksLinguagemC" target="_blank" rel="noopener">
+        ↗ ver repositório
+      </a>
+    </div>
+  </div>
+
+  <div class="concepts">
+    <div class="sec-label">// conceitos aplicados</div>
+    <div class="sec-title">fundamentos da linguagem C</div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-num">01</div>
+        <div class="card-name">Variáveis globais</div>
+        <div class="card-desc">Array de tarefas e contador total no escopo global, acessíveis por todas as funções do programa.</div>
+      </div>
+      <div class="card">
+        <div class="card-num">02</div>
+        <div class="card-name">Variáveis locais</div>
+        <div class="card-desc">Buffers de entrada declarados dentro de cada função, com escopo controlado e isolado.</div>
+      </div>
+      <div class="card">
+        <div class="card-num">03</div>
+        <div class="card-name">Switch case</div>
+        <div class="card-desc">Navegação entre as opções do menu com ramificação clara e tratamento de entradas inválidas via default.</div>
+      </div>
+      <div class="card">
+        <div class="card-num">04</div>
+        <div class="card-name">Loop while</div>
+        <div class="card-desc">O menu persiste em execução até o usuário escolher explicitamente a opção de saída.</div>
+      </div>
+      <div class="card">
+        <div class="card-num">05</div>
+        <div class="card-name">For loop</div>
+        <div class="card-desc">Iteração sobre o array de tarefas para listagem numerada e formatada no terminal.</div>
+      </div>
+      <div class="card">
+        <div class="card-num">06</div>
+        <div class="card-name">Funções</div>
+        <div class="card-desc">Separação de responsabilidades entre adicionarTarefa() e listarTarefas().</div>
+      </div>
+      <div class="card">
+        <div class="card-num">07</div>
+        <div class="card-name">Strings em C</div>
+        <div class="card-desc">Uso de scanf com máscara, strcpy para cópia de strings e printf formatado.</div>
+      </div>
+    </div>
+
+    <hr class="divider" style="margin: 0 0 56px;" />
+
+    <div class="sec-label">// funcionalidades</div>
+    <div class="sec-title">o que o programa faz</div>
+
+    <div class="feat-table-wrap">
+      <table class="feat">
+        <thead>
+          <tr>
+            <th>funcionalidade</th>
+            <th>descrição</th>
+            <th>conceito</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="feat-name">Adicionar tarefa</td>
+            <td class="feat-desc">Lê uma string do terminal e armazena na lista global</td>
+            <td><span class="tag">scanf / strcpy</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Listar tarefas</td>
+            <td class="feat-desc">Exibe todas as tarefas cadastradas com numeração</td>
+            <td><span class="tag">for loop</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Limite de tarefas</td>
+            <td class="feat-desc">Valida o máximo de 5 itens e exibe aviso ao usuário</td>
+            <td><span class="tag">if / condicional</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Menu interativo</td>
+            <td class="feat-desc">Loop contínuo até o usuário escolher sair</td>
+            <td><span class="tag">while / switch</span></td>
+          </tr>
+          <tr>
+            <td class="feat-name">Opção inválida</td>
+            <td class="feat-desc">Feedback de erro sem travar ou reiniciar o programa</td>
+            <td><span class="tag">default case</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider" style="margin: 0 0 56px;" />
+
+    <div class="sec-label">// instalação</div>
+    <div class="sec-title">como rodar</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">01</div>
+        <div class="step-title">clone o repositório</div>
+        <div class="step-desc">Baixe o projeto direto do GitHub com um único comando.</div>
+        <div class="step-code">git clone https://github.com/<br>jeffsilva03/tasksLinguagemC</div>
+      </div>
+      <div class="step">
+        <div class="step-number">02</div>
+        <div class="step-title">compile com GCC</div>
+        <div class="step-desc">Um único arquivo fonte. Sem Makefile, sem build system.</div>
+        <div class="step-code">gcc main.c -o tasks</div>
+      </div>
+      <div class="step">
+        <div class="step-number">03</div>
+        <div class="step-title">execute no terminal</div>
+        <div class="step-desc">O menu interativo inicia automaticamente após a execução.</div>
+        <div class="step-code">./tasks</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="f-left">// jeffsilva03/tasksLinguagemC · C99 · uso livre</div>
+    <div class="f-right">
+      <a href="https://github.com/jeffsilva03/tasksLinguagemC" target="_blank" rel="noopener">github</a>
+      <a href="https://github.com/jeffsilva03/tasksLinguagemC/blob/main/main.c" target="_blank" rel="noopener">main.c</a>
+      <a href="https://github.com/jeffsilva03" target="_blank" rel="noopener">@jeffsilva03</a>
+    </div>
+  </footer>
+</div>
+
+<!-- TERMINAL PAGE -->
+<div id="page-terminal" class="page">
+  <div class="term-wrap">
+    <div class="term-header">
+      <div class="term-info">simulando <span>tasksLinguagemC/main.c</span> — lógica fiel ao código C original</div>
+      <button class="ctrl-btn" onclick="resetProgram()">reiniciar</button>
+    </div>
+
+    <div class="terminal">
+      <div class="tbar">
+        <div class="dot dr"></div>
+        <div class="dot dy"></div>
+        <div class="dot dg"></div>
+        <span class="ttitle">bash — tasksLinguagemC</span>
+      </div>
+      <div class="tbody" id="toutput"></div>
+      <div class="input-row">
+        <span class="input-prompt" id="input-prompt">$ </span>
+        <input id="user-input" placeholder="digite aqui..." autocomplete="off" spellcheck="false" />
+        <button class="send-btn" onclick="submitInput()">enter ↵</button>
+      </div>
+    </div>
+
+    <div class="help-grid">
+      <div class="help-card" onclick="quickInput('1')">
+        <div class="help-key">digitar 1</div>
+        <div class="help-val">adicionar tarefa</div>
+      </div>
+      <div class="help-card" onclick="quickInput('2')">
+        <div class="help-key">digitar 2</div>
+        <div class="help-val">listar tarefas</div>
+      </div>
+      <div class="help-card" onclick="quickInput('3')">
+        <div class="help-key">digitar 3</div>
+        <div class="help-val">sair do programa</div>
+      </div>
+      <div class="help-card" onclick="quickInput('9')">
+        <div class="help-key">digitar 9</div>
+        <div class="help-val">opção inválida (teste)</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="f-left">// jeffsilva03/tasksLinguagemC · C99 · uso livre</div>
+    <div class="f-right">
+      <a href="https://github.com/jeffsilva03/tasksLinguagemC" target="_blank" rel="noopener">github</a>
+      <a href="https://github.com/jeffsilva03/tasksLinguagemC/blob/main/main.c" target="_blank" rel="noopener">main.c</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+  // PAGE SWITCHING
+  function showPage(name, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'terminal' && !programStarted) startProgram();
+    if (name === 'terminal') setTimeout(() => document.getElementById('user-input').focus(), 200);
+  }
+
+  //  PROGRAM STATE
+  const MAX_TASKS = 5;
+  let tarefas = [];
+  let programStarted = false;
+  let state = 'boot'; // 'boot' | 'menu' | 'awaiting_task' | 'ended'
+
+  function resetProgram() {
+    tarefas = [];
+    state = 'boot';
+    programStarted = false;
+    document.getElementById('toutput').innerHTML = '';
+    startProgram();
+  }
+
+  function startProgram() {
+    programStarted = true;
+    state = 'boot';
+    setPrompt('$ ');
+
+    addLine('compile', '$ gcc main.c -o tasks');
+    setTimeout(() => {
+      addLine('compile', '$ ./tasks');
+      setTimeout(() => {
+        addLine('title', '=== Gerenciador de Tarefas em C ===');
+        setTimeout(() => showMenu(), 350);
+      }, 300);
+    }, 560);
+  }
+
+  function showMenu() {
+    if (state === 'ended') return;
+    addLine('blank', '');
+    addLine('out', 'Menu:');
+    addLine('num', '1 - Adicionar tarefa');
+    addLine('num', '2 - Listar tarefas');
+    addLine('num', '3 - Sair');
+    addLine('blank', '');
+    setPrompt('Escolha uma opção: ');
+    state = 'menu';
+  }
+
+  function handleMenu(input) {
+    const opt = parseInt(input.trim());
+    addLine('user', input);
+
+    if (opt === 1) {
+      if (tarefas.length >= MAX_TASKS) {
+        addLine('blank', '');
+        addLine('err', 'Limite de tarefas atingido!');
+        setTimeout(() => showMenu(), 300);
+      } else {
+        addLine('blank', '');
+        setPrompt('Digite a tarefa: ');
+        state = 'awaiting_task';
+      }
+    } else if (opt === 2) {
+      addLine('blank', '');
+      if (tarefas.length === 0) {
+        addLine('out', 'Nenhuma tarefa cadastrada.');
+      } else {
+        addLine('out', 'Lista de tarefas:');
+        tarefas.forEach((t, i) => addLine('item', (i + 1) + ' - ' + t));
+      }
+      setTimeout(() => showMenu(), 300);
+    } else if (opt === 3) {
+      addLine('blank', '');
+      addLine('green', 'Encerrando programa...');
+      addLine('blank', '');
+      addLine('comment', '// processo encerrado — clique em "reiniciar" para rodar novamente.');
+      setPrompt('$ ');
+      state = 'ended';
+    } else {
+      addLine('blank', '');
+      addLine('err', 'Opção inválida!');
+      setTimeout(() => showMenu(), 300);
+    }
+  }
+
+  function handleTask(input) {
+    const task = input.trim();
+    addLine('str', task || '(vazio)');
+    if (!task) {
+      addLine('err', 'Tarefa vazia, tente novamente.');
+      setPrompt('Digite a tarefa: ');
+      return;
+    }
+    tarefas.push(task);
+    addLine('blank', '');
+    addLine('green', 'Tarefa adicionada com sucesso!');
+    setTimeout(() => showMenu(), 300);
+  }
+
+  function submitInput() {
+    const inp = document.getElementById('user-input');
+    const val = inp.value;
+    inp.value = '';
+    if (state === 'boot' || state === 'ended') return;
+    if (state === 'menu') handleMenu(val);
+    else if (state === 'awaiting_task') handleTask(val);
+  }
+
+  function quickInput(val) {
+    if (state === 'boot' || state === 'ended') return;
+    document.getElementById('user-input').value = val;
+    submitInput();
+  }
+
+  document.getElementById('user-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') submitInput();
+  });
+
+  // RENDER HELPERS
+  function setPrompt(text) {
+    document.getElementById('input-prompt').textContent = text;
+  }
+
+  function addLine(type, text) {
+    const out = document.getElementById('toutput');
+    const d = document.createElement('div');
+    const t = esc(text);
+    const map = {
+      compile: '<span class="l-prompt">$ </span><span class="l-cmd">' + esc(text.replace(/^\$ /, '')) + '</span>',
+      title:   '<span class="l-green" style="font-weight:600">' + t + '</span>',
+      out:     '<span class="l-out">' + t + '</span>',
+      num:     '<span class="l-num">' + t + '</span>',
+      item:    '<span style="color:#d4d4d4">' + t + '</span>',
+      green:   '<span class="l-green">' + t + '</span>',
+      err:     '<span class="l-err">' + t + '</span>',
+      str:     '<span class="l-str">' + t + '</span>',
+      user:    '<span class="l-cmd">' + t + '</span>',
+      comment: '<span class="l-comment">' + t + '</span>',
+      blank:   '',
+    };
+    d.innerHTML = map[type] !== undefined ? map[type] : t;
+    out.appendChild(d);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+</script>
+</body>
+</html>
